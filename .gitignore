@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv_pna_rios/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Datos generados automáticamente (mantener estructura de carpetas)
+datos/*.xlsx
+datos/*.csv
+logs/*.log
+!datos/.gitkeep
+!logs/.gitkeep
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+
+# Archivos de configuración personal (mantener ejemplo)
+# config_personal.py
+
+# WhatsApp Database
+PyWhatKit_DB.txt
+
+# Selenium WebDriver cache
+.wdm/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Paquetes portables generados (se pueden regenerar)
+PNA_Rios_Portable_*/
+
+# Archivos de debug
+debug_*.py
+test_*.py
+verificar_*.py
+
+# Logs y archivos temporales
+*.log
+*.bak
+*.swp
+*.swo
+
+# Archivos de credenciales (seguridad)
+credenciales.txt
+passwords.txt
+.env
