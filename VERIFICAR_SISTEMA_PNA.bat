@@ -107,16 +107,7 @@ echo.
 REM Verificar configuracion WhatsApp
 echo [8/8] Verificando configuracion WhatsApp...
 if exist venv_pna_rios (
-    venv_pna_rios\Scripts\python.exe -c "
-try:
-    from config import NUMERO_WHATSAPP, ESTACIONES_WHATSAPP
-    if NUMERO_WHATSAPP and ESTACIONES_WHATSAPP:
-        print('✅ Configuracion WhatsApp correcta')
-    else:
-        print('⚠️  Configuracion WhatsApp incompleta')
-except ImportError:
-    print('❌ Error al leer configuracion')
-" 2>nul
+    venv_pna_rios\Scripts\python.exe -c "try: from config import NUMERO_WHATSAPP, ESTACIONES_WHATSAPP; print('✅ Configuracion WhatsApp correcta' if NUMERO_WHATSAPP and ESTACIONES_WHATSAPP else '⚠️  Configuracion WhatsApp incompleta'); except ImportError: print('❌ Error al leer configuracion')" 2>nul
     if %errorlevel% neq 0 (
         echo ❌ Error en configuracion WhatsApp
         echo    Verificar config.py
