@@ -31,6 +31,7 @@ echo.
 REM Verificar dependencias criticas
 echo [3/8] Verificando dependencias Python...
 if exist venv_pna_rios (
+    echo [INFO] Usando Python aislado del venv para verificacion
     venv_pna_rios\Scripts\python.exe -c "import requests, bs4, selenium, pandas, pywhatkit, colorama; print('[OK] Todas las dependencias criticas instaladas')" 2>nul
     if %errorlevel% neq 0 (
         echo [ERROR] Faltan dependencias Python

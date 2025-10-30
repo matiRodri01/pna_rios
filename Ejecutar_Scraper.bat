@@ -1,83 +1,59 @@
 @echo off
-echo =========================================
-echo     SCRAPER PNA RIOS - EJECUTOR v1.0
-echo =========================================
-echo.
+REM EJECUTOR SCRAPER PNA RIOS v1.2 - AUTOMÁTICO (doble clic)
+setlocal
 
-REM Verificar que estamos en el directorio correcto
-if not exist "venv_pna_rios" (
-    echo [ERROR] Entorno virtual no encontrado.
-    echo.
-    echo Este ejecutor debe estar en la carpeta donde se instalo el sistema.
-    echo Si no has instalado el sistema, ejecuta primero "Instalar_PNA_Rios.bat"
-    echo.
-    pause
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
+
+REM Detectar venv en la raiz o en PNA_Rios_Portable
+set "VENV_DIR=%SCRIPT_DIR%venv_pna_rios"
+if not exist "%VENV_DIR%" (
+    if exist "%SCRIPT_DIR%PNA_Rios_Portable\venv_pna_rios" (
+        set "VENV_DIR=%SCRIPT_DIR%PNA_Rios_Portable\venv_pna_rios"
+    )
+)
+
+if not exist "%VENV_DIR%" (
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('Entorno virtual no encontrado. Ejecute Instalar_PNA_Rios.bat primero.','PNA Rios - Error','OK','Error')"
     exit /b 1
 )
 
-if not exist "scraper.py" (
-    echo [ERROR] scraper.py no encontrado.
-    echo.
-    echo Asegurate de que los archivos del proyecto esten en esta carpeta:
-    echo - scraper.py
-    echo - config.py
-    echo.
-    pause
+set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
+
+REM Verificar archivos principales
+if not exist "%SCRIPT_DIR%scraper.py" (
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('scraper.py no encontrado en la carpeta. Asegurese de tener los archivos del proyecto aqui.','PNA Rios - Error','OK','Error')"
+    exit /b 1
+)
+if not exist "%SCRIPT_DIR%config.py" (
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('config.py no encontrado en la carpeta. Asegurese de tener los archivos del proyecto aqui.','PNA Rios - Error','OK','Error')"
     exit /b 1
 )
 
-if not exist "config.py" (
-    echo [ERROR] config.py no encontrado.
-    echo.
-    echo Asegurate de que los archivos del proyecto esten en esta carpeta:
-    echo - scraper.py  
-    echo - config.py
-    echo.
-    pause
-    exit /b 1
-)
-
-REM Activar entorno virtual
-echo [INFO] Activando entorno virtual...
-call venv_pna_rios\Scripts\activate.bat
-
-REM Verificar que las dependencias estén instaladas
-echo [INFO] Verificando dependencias...
-python -c "import requests, bs4, pandas, selenium, pywhatkit, colorama" >nul 2>&1
+REM Verificar que dependencias principales esten instaladas (usando python del venv)
+"%VENV_PY%" -c "import requests, bs4, pandas, selenium, pywhatkit, colorama" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Dependencias no instaladas correctamente.
-    echo Ejecuta "Instalar_PNA_Rios.bat" para reinstalar.
-    pause
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('Faltan dependencias en el entorno. Ejecute Instalar_PNA_Rios.bat.','PNA Rios - Error','OK','Error')"
     exit /b 1
 )
 
-echo [INFO] Sistema listo para ejecutar
-echo.
-echo =========================================
-echo     INICIANDO SCRAPER PNA RIOS
-echo =========================================
-echo.
+REM Ejecutar el scraper con el python del venv (aislado)
+echo [INFO] Ejecutando con Python aislado del venv...
+echo [INFO] Python utilizado: %VENV_PY%
+"%VENV_PY%" "%SCRIPT_DIR%scraper.py"
+set "RET=%ERRORLEVEL%"
 
-REM Ejecutar el scraper
-python scraper.py
+REM Limpiar variables de entorno para evitar conflictos
+set "VENV_PY="
+set "VENV_DIR="
 
-REM Mostrar resultado
-if %errorlevel% equ 0 (
-    echo.
-    echo =========================================
-    echo     EJECUCION COMPLETADA EXITOSAMENTE
-    echo =========================================
-    echo.
-    echo Revisa la carpeta 'datos' para ver los archivos generados.
-    echo Revisa la carpeta 'logs' para ver los registros del sistema.
+REM Resultado: informar por ventana y salir
+if "%RET%"=="0" (
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('Ejecucion completada correctamente. Revise la carpeta datos/ y logs/.','PNA Rios','OK','Information')"
+    exit /b 0
 ) else (
-    echo.
-    echo =========================================
-    echo     ERROR EN LA EJECUCION
-    echo =========================================
-    echo.
-    echo Revisa los logs para mas informacion.
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('La ejecucion finalizo con errores. Revise el archivo de logs en la carpeta logs/.','PNA Rios - Error','OK','Error')"
+    exit /b %RET%
 )
 
-echo.
-pause
+endlocal

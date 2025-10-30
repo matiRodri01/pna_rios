@@ -1,94 +1,101 @@
 @echo off
+REM INSTALADOR SCRAPER PNA RIOS v1.3 - AUTOMÁTICO (doble clic)
+setlocal
+
 echo =========================================
-echo   INSTALADOR SCRAPER PNA RIOS v1.0
+echo   INSTALADOR SCRAPER PNA RIOS v1.3
 echo =========================================
-echo.
 
 REM Verificar si Python está instalado
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Python no esta instalado en este sistema.
-    echo.
-    echo Por favor:
-    echo 1. Descarga Python desde https://python.org
-    echo 2. Instala Python marcando "Add to PATH"
-    echo 3. Ejecuta este instalador nuevamente
-    echo.
-    pause
+    powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('Python no esta instalado en este equipo. Instale Python 3.8+ y marque \"Add to PATH\" durante la instalación.','Instalador PNA Rios','OK','Error')"
     exit /b 1
 )
 
-echo [INFO] Python encontrado correctamente
-python --version
+REM Directorio del script
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
 
-REM Crear directorio de trabajo si no existe
-if not exist "PNA_Rios_Portable" (
-    echo [INFO] Creando directorio PNA_Rios_Portable...
-    mkdir PNA_Rios_Portable
+REM Por defecto crear entorno virtual en la carpeta actual (raíz)
+set "VENV_DIR=%SCRIPT_DIR%venv_pna_rios"
+
+REM Soporte para /portable si se desea (mantener compatibilidad)
+if "%1"=="/portable" (
+    if not exist "%SCRIPT_DIR%PNA_Rios_Portable" mkdir "%SCRIPT_DIR%PNA_Rios_Portable"
+    set "VENV_DIR=%SCRIPT_DIR%PNA_Rios_Portable\venv_pna_rios"
 )
 
-cd PNA_Rios_Portable
+echo [INFO] Entorno virtual destino: %VENV_DIR%
 
-REM Crear entorno virtual
-echo [INFO] Creando entorno virtual Python...
-python -m venv venv_pna_rios
+REM Crear entorno virtual si no existe
+if exist "%VENV_DIR%" (
+    echo [INFO] Entorno virtual ya existe: %VENV_DIR%
+) else (
+    echo [INFO] Creando entorno virtual Python...
+    python -m venv "%VENV_DIR%"
+    if %errorlevel% neq 0 (
+        powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('No se pudo crear el entorno virtual. Revise permisos o la instalacion de Python.','Instalador PNA Rios','OK','Error')"
+        exit /b 1
+    )
+)
+
+REM Usar el python del venv para instalar (no necesitamos activar)
+set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
+
+REM Actualizar pip/wheel/setuptools
+"%VENV_PY%" -m pip install --upgrade pip wheel setuptools >nul 2>&1
+
+REM Intentar instalar desde requirements.txt
+if exist "%SCRIPT_DIR%requirements.txt" (
+    "%VENV_PY%" -m pip install -r "%SCRIPT_DIR%requirements.txt"
+    if %errorlevel% neq 0 (
+        echo [WARN] Instalacion desde requirements.txt fallo. Intentando paquetes individuales...
+        REM Lista de paquetes críticos
+        set PACKS=requests==2.32.5 beautifulsoup4==4.12.3 lxml==5.3.0 selenium==4.25.0 pandas==2.3.3 openpyxl==3.1.5 numpy==2.3.4 pywhatkit==5.4 pyautogui==0.9.54 Pillow==11.0.0 python-dateutil==2.9.0.post0 schedule==1.2.2 colorama==0.4.6 python-dotenv==1.0.1 webdriver-manager==4.0.2
+        for %%P in (%PACKS%) do (
+            echo [INFO] Instalando %%P ...
+            "%VENV_PY%" -m pip install %%P
+            if errorlevel 1 (
+                echo [WARN] Reintentando %%P ...
+                "%VENV_PY%" -m pip install %%P
+            )
+        )
+    ) else (
+        echo [INFO] Dependencias instaladas desde requirements.txt
+    )
+) else (
+    echo [WARN] requirements.txt no encontrado. Instalando paquetes criticos individualmente...
+    "%VENV_PY%" -m pip install requests beautifulsoup4 lxml selenium pandas openpyxl numpy pywhatkit pyautogui Pillow python-dateutil schedule colorama python-dotenv webdriver-manager
+)
+
+REM Asegurar que lxml esté instalado (es crítico)
+"%VENV_PY%" -m pip show lxml >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] No se pudo crear el entorno virtual
-    pause
-    exit /b 1
+    echo [INFO] lxml no encontrado. Intentando instalar lxml explicitamente...
+    "%VENV_PY%" -m pip install lxml
+    if %errorlevel% neq 0 (
+        echo [WARN] Intentando instalar rueda binaria de lxml...
+        "%VENV_PY%" -m pip install --only-binary=:all: lxml
+        if %errorlevel% neq 0 (
+            echo [ERROR] No se pudo instalar lxml automaticamente.
+            powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('ATENCION: No se pudo instalar la dependencia lxml automaticamente. El instalador continuo pero el parser lxml puede faltar.','Instalador PNA Rios','OK','Warning')"
+        ) else (
+            echo [INFO] lxml instalado correctamente (rueda).
+        )
+    ) else (
+        echo [INFO] lxml instalado correctamente.
+    )
+) else (
+    echo [INFO] lxml ya instalado.
 )
 
-REM Activar entorno virtual
-echo [INFO] Activando entorno virtual...
-call venv_pna_rios\Scripts\activate.bat
+REM Crear carpetas datos y logs si no existen
+if not exist "%SCRIPT_DIR%datos" mkdir "%SCRIPT_DIR%datos"
+if not exist "%SCRIPT_DIR%logs" mkdir "%SCRIPT_DIR%logs"
 
-REM Actualizar pip
-echo [INFO] Actualizando pip...
-python -m pip install --upgrade pip
+REM Mensaje final al usuario (ventana)
+powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('Instalacion completada correctamente.\n\nPara ejecutar el sistema haga DOBLE-CLICK en Ejecutar_Scraper.bat.','Instalador PNA Rios','OK','Information')"
 
-REM Instalar dependencias
-echo [INFO] Instalando dependencias...
-pip install requests==2.32.5
-pip install beautifulsoup4==4.12.3
-pip install lxml==5.3.0
-pip install selenium==4.25.0
-pip install pandas==2.3.3
-pip install openpyxl==3.1.5
-pip install numpy==2.3.4
-pip install pywhatkit==5.4
-pip install pyautogui==0.9.54
-pip install Pillow==11.0.0
-pip install python-dateutil==2.9.0.post0
-pip install schedule==1.2.2
-pip install colorama==0.4.6
-pip install python-dotenv==1.0.1
-pip install webdriver-manager==4.0.2
-
-if %errorlevel% neq 0 (
-    echo [ERROR] Error instalando dependencias
-    pause
-    exit /b 1
-)
-
-REM Crear directorios necesarios
-echo [INFO] Creando estructura de directorios...
-if not exist "datos" mkdir datos
-if not exist "logs" mkdir logs
-
-echo [INFO] Instalacion completada exitosamente!
-echo.
-echo =========================================
-echo   INSTALACION COMPLETADA
-echo =========================================
-echo.
-echo El sistema se ha instalado en: %cd%
-echo.
-echo PROXIMOS PASOS:
-echo 1. Copia los archivos del proyecto (config.py, scraper.py) a esta carpeta
-echo 2. Ejecuta "Ejecutar_Scraper.bat" para iniciar el sistema
-echo.
-echo Archivos necesarios:
-echo - config.py (configuracion del sistema)
-echo - scraper.py (programa principal)
-echo.
-pause
+endlocal
+exit /b 0
